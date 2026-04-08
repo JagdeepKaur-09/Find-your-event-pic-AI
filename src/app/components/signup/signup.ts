@@ -1,26 +1,40 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router'; 
+import { RouterLink, Router } from '@angular/router'; 
 import { FormsModule } from '@angular/forms'; 
+import { AuthService } from '../../services/auth'; // Import the Chef
 
 @Component({
   selector: 'app-signup',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule], // No AuthService here!
   templateUrl: './signup.html',
-  styleUrl: './signup.css',
+  styleUrl: './signup.css'
 })
 export class Signup {
-
-  // Data Buckets 
   userName = '';
   userEmail = '';
   userPassword = '';
 
-  onSignup(){
-    console.log("--- SIGNUP ATTEMPT ---");
-    console.log("Name captured:", this.userName);
-    console.log("Email captured:", this.userEmail);
-    console.log("Password captured:", this.userPassword);
-    alert("Signup button clicked! Check your console.");
+  // Inject the Chef AND the Angular Router (so we can change pages)
+  constructor(private authService: AuthService, private router: Router) { }
 
+  onSignup() {
+    const newUserData = {
+      name: this.userName,
+      email: this.userEmail,
+      password: this.userPassword
+    };
+
+    // Hand the data to the Chef
+    this.authService.registerUser(newUserData).subscribe({
+      next: (response:any) => {
+        console.log("Success!", response);
+        alert("Account Created! Redirecting to Login...");
+        this.router.navigate(['/login']); // Instantly send them to the login page
+      },
+      error: (err:any) => {
+        console.error("Signup Failed:", err);
+        alert("Signup failed. That email might already be used.");
+      }
+    });
   }
 }

@@ -1,0 +1,61 @@
+<nav class="navbar navbar-dark bg-dark mb-5">
+  <div class="container-fluid px-4">
+    <span class="navbar-brand mb-0 h1">EventSnap AI Dashboard</span>
+    <button class="btn btn-outline-light btn-sm" (click)="onLogout()">Logout</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="row g-4">
+    
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100 border-primary">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">📸 Event Organizer</h4>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-muted">Create a new event room and upload the bulk gallery.</p>
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold">Event Name</label>
+            <input type="text" class="form-control" placeholder="e.g., College Fest 2026" [(ngModel)]="newEventName">
+          </div>
+          
+          <button class="btn btn-primary w-100 mb-3" (click)="onCreateRoom()">Generate Room Code</button>
+
+          @if (createdRoomCode) {
+            <div class="alert alert-success">
+              <strong>Success!</strong> Room Code: <code>{{ createdRoomCode }}</code>
+              <hr>
+              <p class="mb-0 small">Share this link with attendees: <br> <code>localhost:4200/room/{{createdRoomCode}}</code></p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100 border-success">
+        <div class="card-header bg-success text-white">
+          <h4 class="mb-0">👤 Event Attendee</h4>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-muted">Enter a code to instantly find every photo you are in.</p>
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold">Room Code</label>
+            <input type="text" class="form-control" placeholder="e.g., a1b2c3" [(ngModel)]="joinRoomCode">
+          </div>
+
+          <button class="btn btn-success w-100" (click)="onJoinRoom()">Find My Photos</button>
+          
+          <div class="mt-4 text-center">
+            <button class="btn btn-link text-success text-decoration-none small">View All Event Photos (Manual Mode)</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

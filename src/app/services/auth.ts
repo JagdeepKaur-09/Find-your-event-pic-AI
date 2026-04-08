@@ -17,7 +17,7 @@ export class AuthService {
   registerUser(userData: any) {
     console.log("Service is sending Signup data to backend...");
     // We send a POST request to Jagdeep's /register route
-    return this.http.post(`${this.backendUrl}/register`, userData);
+    return this.http.post(`${this.backendUrl}/signup`, userData);
   }
 
   // 5. The function for the Login page to use

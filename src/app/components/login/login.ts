@@ -1,28 +1,43 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router'; 
+import { RouterLink, Router } from '@angular/router'; // <-- Make sure Router is imported
 import { FormsModule } from '@angular/forms'; 
-import { AuthService} from '../../services/auth';
-
+import { AuthService } from '../../services/auth'; 
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink , FormsModule],
-  templateUrl: './login.html',
-  styleUrl: './login.css',
+  imports: [RouterLink, FormsModule],
+  templateUrl: './login.html', // (Make sure this matches your actual HTML filename!)
+  styleUrl: './login.css' // (Make sure this matches your actual CSS filename!)
 })
 export class Login {
-
-  constructor(private authService : AuthService) { } // We injected Auth Service to Login component 
-
-  //  Create empty buckets to hold what the user types
   userEmail = '';
   userPassword = '';
 
-  // Create the function that runs when the button is clicked
+  // Inject the Chef AND the Router
+  constructor(private authService: AuthService, private router: Router) { }
+
   onLogin() {
-    console.log("--- LOGIN ATTEMPT ---");
-    console.log("Email captured:", this.userEmail);
-    console.log("Password captured:", this.userPassword);
-    alert("Login button clicked! Check your developer console.");
+    const credentials = {
+      email: this.userEmail,
+      password: this.userPassword
+    };
+
+    this.authService.loginUser(credentials).subscribe({
+      next: (response: any) => {
+        console.log("Backend says YES:", response);
+        
+        // 1. Grab the VIP Wristband and save it to the browser
+        localStorage.setItem('token', response.token); 
+        
+        alert("Login Successful! Taking you to the Dashboard...");
+        
+        // 2. Instantly route them to the dashboard page
+        this.router.navigate(['/dashboard']); 
+      },
+      error: (err: any) => {
+        console.error("Backend says NO:", err);
+        alert("Login Failed. Check your email and password.");
+      }
+    });
   }
 }
