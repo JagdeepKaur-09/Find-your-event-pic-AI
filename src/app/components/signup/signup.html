@@ -20,7 +20,9 @@
             <label for="password" class="form-label fw-bold">Password</label>
             <input type="password" class="form-control" id="password" name = "password" [(ngModel)] = "userPassword" placeholder="Create a password">
           </div>
-          
+
+          <input type="file" (change)="onUploadReferenceFace($event)">
+
           <button type="submit" class="btn btn-primary w-100 fw-bold">Sign Up</button>
         </form>
 

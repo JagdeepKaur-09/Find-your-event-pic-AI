@@ -1,48 +1,54 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router'; // <-- Lets us read the URL
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-room',
-  imports: [], // No forms needed here yet
+  imports: [],
   templateUrl: './room.html',
   styleUrl: './room.css'
 })
 export class Room implements OnInit {
   roomCode: string = '';
-  isScanning: boolean = false;
-  hasMatched: boolean = false;
+  userRole: string = 'attendee'; // Default to attendee
+  hasSavedFace: boolean = false;
 
-  // Fake gallery of photos for the presentation
+  // Fake gallery for the presentation
   allPhotos = [
-    'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=500', // Party crowd
-    'https://images.unsplash.com/photo-1540039155732-d674d442c4eb?w=500', // Concert
-    'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=500', // Group selfie
-    'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500'  // Event lights
+    'sif-pic.jpg', 
+    'https://images.unsplash.com/photo-1540039155732-d674d442c4eb?w=500'
   ];
 
   constructor(private route: ActivatedRoute) {}
 
-  // This runs the moment the page loads
   ngOnInit() {
-    // Grab the ID from the URL (e.g., /room/123456 -> 123456)
-    this.roomCode = this.route.snapshot.paramMap.get('id') || 'Unknown Room';
+    // 1. Get the Room Code
+    this.roomCode = this.route.snapshot.paramMap.get('id') || 'Unknown';
+    
+    // 2. Check if they are Organizer or Attendee
+    this.route.queryParams.subscribe(params => {
+      this.userRole = params['role'] || 'attendee';
+    });
+
+    // 3. If Attendee, check if they gave us face data during signup
+    if (this.userRole === 'attendee') {
+      const savedFace = localStorage.getItem('myFaceMath');
+      if (savedFace) {
+        this.hasSavedFace = true;
+        this.runAutomaticFaceMatch();
+      }
+    }
   }
 
-  // The MVP "AI Scan" 
-  onUploadSelfie(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.isScanning = true;
-      
-      // Fake a 2.5 second delay so it looks like the AI is "thinking"
-      setTimeout(() => {
-        this.isScanning = false;
-        this.hasMatched = true;
-        
-        // For the demo, we just shrink the array to 1 photo to prove it "filtered" them
-        this.allPhotos = ['https://images.unsplash.com/photo-1478147427282-58a87a120781?w=500']; 
-        
-      }, 2500);
-    }
+  // --- ORGANIZER FUNCTION ---
+  onBulkUploadGallery(event: any) {
+    const files = event.target.files;
+    alert(`Pretending to upload ${files.length} photos to the main gallery!`);
+    // Tomorrow we will write the code to loop through these and extract ALL faces
+  }
+
+  // --- ATTENDEE FUNCTION ---
+  runAutomaticFaceMatch() {
+    console.log("Attendee detected. Automatically filtering gallery using face from Signup...");
+    // Tomorrow we will write the Euclidean Distance math here to actually filter the photos!
   }
 }

@@ -36,7 +36,7 @@ export class Dashboard {
     this.http.post('http://localhost:5000/api/rooms/create', roomData).subscribe({
       next: (res: any) => {
         this.createdRoomCode = res.roomCode;
-        alert(`Room Created! Your code is: ${this.createdRoomCode}`);
+        this.router.navigate(['/room', res.roomCode], { queryParams: { role: 'organizer' }});
       },
       error: (err: any) => {
         console.error("Error creating room:", err);
@@ -48,11 +48,14 @@ export class Dashboard {
   // --- ATTENDEE: Join a room ---
   onJoinRoom() {
     if (!this.joinRoomCode) {
-      alert("Please enter a room code!");
       return;
     }
-    // Tomorrow, we will route them to the actual room page: /room/abc123
-    alert(`Pretending to join room: ${this.joinRoomCode}. Our AI will use the face you provided at signup!`);
+    /// Defensive Programming: If they paste the whole URL, just grab the last part!
+    // e.g., "localhost:4200/room/abc" becomes "abc"
+    const cleanRoomCode = this.joinRoomCode.split('/').pop()?.trim();
+
+    // Use the Angular Router to actually send them to the room!
+    this.router.navigate(['/room', cleanRoomCode], { queryParams: { role: 'attendee' }});
   }
 
   onLogout() {
