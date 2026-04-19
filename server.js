@@ -28,12 +28,7 @@ app.use("/js", express.static(path.join(__dirname, "node_modules/bootstrap/dist/
 // MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log(" MongoDB connected"))
-  .catch(err => console.log(" Error:", err));
-
-  
-  // Route
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB error:", err));
+  .catch(err => console.error(" MongoDB error:", err));
 
 // Start background queue worker
 require("./queues/imageQueue");
@@ -53,15 +48,15 @@ app.get("/", (req, res) => {
 
 // Socket.io events
 io.on("connection", (socket) => {
-  console.log("⚡ User connected:", socket.id);
+  console.log(" User connected:", socket.id);
 
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
-    console.log(`👤 User joined room: ${roomId}`);
+    console.log(`User joined room: ${roomId}`);
   });
 
   socket.on("disconnect", () => {
-    console.log("🔥 User disconnected:", socket.id);
+    console.log("User disconnected:", socket.id);
   });
 });
 
