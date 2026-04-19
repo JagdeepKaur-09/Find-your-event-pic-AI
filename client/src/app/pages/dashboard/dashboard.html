@@ -1,0 +1,61 @@
+<nav class="navbar navbar-dark bg-dark px-4 d-flex justify-content-between">
+  <span class="navbar-brand">📸 EventSnap AI</span>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-light btn-sm" (click)="router.navigate(['/register-face'])">Register Face</button>
+    <button class="btn btn-outline-danger btn-sm" (click)="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="container mt-4">
+
+  <div *ngIf="errorMsg" class="alert alert-danger alert-dismissible">
+    {{ errorMsg }}
+    <button type="button" class="btn-close" (click)="errorMsg = ''"></button>
+  </div>
+
+  <!-- Create Room -->
+  <div class="card p-3 mb-4 shadow-sm">
+    <h5 class="mb-3">Create a New Room</h5>
+    <div class="d-flex gap-2">
+      <input type="text" class="form-control" placeholder="Event name" [(ngModel)]="newRoomName"
+        (keyup.enter)="createRoom()">
+      <button class="btn btn-primary" (click)="createRoom()">Create</button>
+    </div>
+  </div>
+
+  <!-- Join Room -->
+  <div class="card p-3 mb-4 shadow-sm">
+    <h5 class="mb-3">Join a Room</h5>
+    <div class="d-flex gap-2">
+      <input type="text" class="form-control" placeholder="Enter room code" [(ngModel)]="joinCode"
+        (keyup.enter)="enterRoom()">
+      <button class="btn btn-outline-primary" (click)="enterRoom()">Enter</button>
+    </div>
+  </div>
+
+  <!-- My Rooms -->
+  <h5 class="mb-3">My Rooms</h5>
+
+  <div *ngIf="rooms.length === 0" class="alert alert-info">
+    No rooms yet. Create one above.
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-4" *ngFor="let room of rooms">
+      <div class="card p-3 shadow-sm h-100">
+        <h6 class="mb-1">{{ room.eventName }}</h6>
+        <p class="text-muted mb-1 small">Code: <strong>{{ room.roomCode }}</strong></p>
+        <span class="badge bg-secondary mb-3">{{ room.status }}</span>
+        <div class="d-flex gap-2 mt-auto">
+          <button class="btn btn-sm btn-primary flex-fill" (click)="goToRoom(room.roomCode)">
+            Open Room
+          </button>
+          <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="goToUpload(room._id)">
+            Upload
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

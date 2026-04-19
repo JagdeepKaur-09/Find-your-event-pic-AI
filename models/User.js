@@ -4,6 +4,7 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String,
+  faceDescriptor: { type: [Number], default: [] },
   consentGiven: { type: Boolean, default: false },
 }, { timestamps: true });
 

@@ -1,0 +1,23 @@
+<div class="container mt-5 text-center">
+  <div class="card p-4 shadow-sm">
+    <h3>Face Registration</h3>
+    <p [class.text-primary]="!loading" class="fw-bold">{{ statusMessage }}</p>
+
+    <div class="video-container mb-3">
+      <video #video width="400" height="300" autoplay muted class="border rounded bg-light"></video>
+    </div>
+
+    <div>
+      <button 
+        (click)="captureAndSave()" 
+        [disabled]="loading" 
+        class="btn btn-primary btn-lg">
+        Capture My Face
+      </button>
+    </div>
+    
+    <p class="mt-3 text-muted small">
+      Your biometric data is converted to numbers and stored securely for matching.
+    </p>
+  </div>
+</div>
