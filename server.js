@@ -5,6 +5,9 @@ require("dotenv").config();
 
 const app = express();
 
+const cors = require("cors");
+app.use(cors());
+
 // Lets server read JSON data (needed for signup/login later)
 app.use(express.json());
 
@@ -14,8 +17,8 @@ app.use('/js', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.log("❌ Error:", err));
+  .then(() => console.log(" MongoDB connected"))
+  .catch(err => console.log(" Error:", err));
 
   
   // Route
@@ -31,5 +34,5 @@ app.use("/api/rooms", roomRoutes);
 
 // Server start
 app.listen(5000, () => {
-  console.log("🚀 Server running on http://localhost:5000");
+  console.log(" Server running on http://localhost:5000");
 });
