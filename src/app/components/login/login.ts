@@ -29,8 +29,6 @@ export class Login {
         // 1. Grab the VIP Wristband and save it to the browser
         localStorage.setItem('token', response.token); 
         
-        alert("Login Successful! Taking you to the Dashboard...");
-        
         // 2. Instantly route them to the dashboard page
         this.router.navigate(['/dashboard']); 
       },

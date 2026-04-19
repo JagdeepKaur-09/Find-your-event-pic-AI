@@ -1,20 +1,19 @@
-<div class="d-flex flex-column min-vh-100">
-
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand fw-bold" routerLink="/">EventSnap AI</a>
-      <div class="ml-auto">
-        <a routerLink="/login" class="btn btn-outline-light mr-2">Login</a>
-        <a routerLink="/signup" class="btn btn-primary">Sign Up</a>
-      </div>
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container-fluid px-4">
+    
+    <a class="navbar-brand mb-0 h1 fw-bold text-white text-decoration-none" routerLink="/">CatchYoFace</a>
+    
+    <div>
+      @if (isLoggedIn) {
+        <button class="btn btn-outline-light btn-sm me-2" routerLink="/dashboard">Dashboard</button>
+        <button class="btn btn-danger btn-sm" (click)="onLogout()">Logout</button>
+      } @else {
+        <button class="btn btn-outline-light btn-sm me-2" routerLink="/login">Login</button>
+        <button class="btn btn-primary btn-sm" routerLink="/signup">Sign Up</button>
+      }
     </div>
-  </nav>
 
-  <router-outlet></router-outlet>
+  </div>
+</nav>
 
-  <footer class="bg-dark text-white text-center p-3 mt-auto">
-  Having any trouble? Contact us: xxxxxxxxxxxx
-  </footer>
-
-</div>
+<router-outlet></router-outlet>

@@ -62,8 +62,12 @@ export class Signup {
 
     this.authService.registerUser(newUserData).subscribe({
       next: (response: any) => {
-        alert("Account & Face Profile Created!");
-        this.router.navigate(['/login']);
+        if (response.token) {
+          localStorage.setItem('token', response.token); 
+        }
+        
+        // 2. Take them straight to the Dashboard!
+        this.router.navigate(['/dashboard']); 
       },
       error: (err: any) => { alert("Signup failed."); }
     });
