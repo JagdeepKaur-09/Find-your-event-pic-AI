@@ -29,6 +29,11 @@ export class RegisterFaceComponent implements OnInit, AfterViewInit, OnDestroy {
       this.router.navigate(['/login']);
       return;
     }
+    // Redirect to consent screen if user hasn't agreed
+    if (!localStorage.getItem('faceConsentGiven')) {
+      this.router.navigate(['/face-consent']);
+      return;
+    }
     await this.loadModels();
   }
 

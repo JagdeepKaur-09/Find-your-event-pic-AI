@@ -143,4 +143,28 @@ router.get("/:roomId", auth, async (req, res) => {
   }
 });
 
+// ─── DELETE /api/photos/:photoId ─────────────────────────────────────────────
+// Organizer only — delete a single photo
+router.delete("/:photoId", auth, async (req, res) => {
+  try {
+    const photo = await Photo.findById(req.params.photoId);
+    if (!photo) return res.status(404).json({ error: "Photo not found." });
+
+    const room = await Room.findById(photo.roomId);
+    if (!room || room.organizerId.toString() !== req.user.userId.toString())
+      return res.status(403).json({ error: "Only the room organizer can delete photos." });
+
+    // Delete from Cloudinary
+    const publicId = photo.cloudinaryUrl.split("/").pop()?.split(".")[0];
+    if (publicId) {
+      await cloudinary.uploader.destroy(`eventsnap/${publicId}`).catch(() => { });
+    }
+
+    await Photo.findByIdAndDelete(req.params.photoId);
+    res.json({ message: "Photo deleted." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

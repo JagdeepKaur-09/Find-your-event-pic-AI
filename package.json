@@ -16,7 +16,9 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "test": "test"
+    "start": "node server.js",
+    "download-models": "node scripts/download-models.js",
+    "test": "echo \"No tests configured\""
   },
   "dependencies": {
     "axios": "^1.15.0",
@@ -28,6 +30,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
     "face-api.js": "^0.22.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.4",

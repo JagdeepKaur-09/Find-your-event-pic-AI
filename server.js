@@ -4,6 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const app = express();
@@ -15,8 +16,22 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors({ origin: "http://localhost:4200" }));
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:4200" }));
 app.use(express.json());
+
+// Rate limiting — 100 requests per 15 min per IP
+app.use("/api/", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: "Too many requests. Please try again later." }
+}));
+
+// Stricter limit on auth endpoints
+app.use("/api/auth/", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: "Too many auth attempts. Please try again later." }
+}));
 
 // Make io accessible in routes via req.app.get("socketio")
 app.set("socketio", io);
@@ -27,11 +42,25 @@ app.use("/js", express.static(path.join(__dirname, "node_modules/bootstrap/dist/
 
 // MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .then(async () => {
+    console.log("✅ MongoDB connected");
+    // On startup, recover any photos stuck in 'processing' from a previous crash
+    const Photo = require("./models/Photo");
+    const stuckCount = await Photo.countDocuments({ status: "processing" });
+    if (stuckCount > 0) {
+      console.log(`⚠️  Found ${stuckCount} stuck photo(s) — re-queuing...`);
+      const stuck = await Photo.find({ status: "processing" });
+      const imageQueue = require("./queues/imageQueue");
+      for (const p of stuck) {
+        await imageQueue.add({ photoId: p._id.toString(), imageUrl: p.cloudinaryUrl });
+      }
+    }
+  })
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// Start background queue worker
-require("./queues/imageQueue");
+// Start background queue worker and pass Socket.io instance to it
+const imageQueue = require("./queues/imageQueue");
+imageQueue.setIo(io);
 
 // Start scheduled cleanup job (clears face data older than 7 days)
 require("./scripts/cleanup");

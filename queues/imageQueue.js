@@ -4,7 +4,6 @@ const canvas = require("canvas");
 const faceapi = require("face-api.js");
 const { Canvas, Image, ImageData } = canvas;
 
-// Patch face-api to use node-canvas
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 const imageQueue = new Queue(
@@ -12,7 +11,11 @@ const imageQueue = new Queue(
   process.env.REDIS_URL || "redis://127.0.0.1:6379"
 );
 
-// Load models once when the worker starts
+// Holds the Socket.io server instance — set by server.js after startup
+let _io = null;
+imageQueue.setIo = (io) => { _io = io; };
+
+// Load models once
 let modelsLoaded = false;
 async function ensureModels() {
   if (modelsLoaded) return;
@@ -23,16 +26,13 @@ async function ensureModels() {
   console.log("✅ Face-api models loaded in queue worker");
 }
 
-// Background worker — processes one job at a time
 imageQueue.process(async (job) => {
   const { photoId, imageUrl } = job.data;
 
   await ensureModels();
 
-  // Load image from Cloudinary URL
   const img = await canvas.loadImage(imageUrl);
 
-  // Run AI face detection
   const detections = await faceapi
     .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
@@ -40,7 +40,6 @@ imageQueue.process(async (job) => {
 
   const faceDescriptors = detections.map(d => Array.from(d.descriptor));
 
-  // Update the photo record with face data and mark as processed
   const photo = await Photo.findByIdAndUpdate(
     photoId,
     { faceDescriptors, status: "processed", processedAt: new Date() },
@@ -49,11 +48,20 @@ imageQueue.process(async (job) => {
 
   if (!photo) throw new Error(`Photo not found: ${photoId}`);
 
+  // Emit real-time update to all clients watching this room
+  if (_io) {
+    _io.to(photo.roomId.toString()).emit("photoProcessed", {
+      photoId: photo._id.toString(),
+      status: "processed",
+      cloudinaryUrl: photo.cloudinaryUrl,
+      roomId: photo.roomId.toString()
+    });
+  }
+
   console.log(`✅ Processed photo ${photoId} — ${faceDescriptors.length} face(s) found`);
   return { status: "completed", facesFound: faceDescriptors.length };
 });
 
-// Log failures
 imageQueue.on("failed", (job, err) => {
   console.error(`❌ Job ${job.id} failed:`, err.message);
 });

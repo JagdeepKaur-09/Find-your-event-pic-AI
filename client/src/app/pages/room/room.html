@@ -5,7 +5,7 @@
     <span class="es-logo-text">EventSnap <span class="es-logo-accent">AI</span></span>
   </div>
   <div class="es-navbar-actions">
-    <button class="es-btn es-btn-ghost" (click)="router.navigate(['/register-face'])">
+    <button class="es-btn es-btn-ghost" (click)="goToConsent()">
       <span>🪪</span> Register Face
     </button>
     <button class="es-btn es-btn-ghost" (click)="goToUpload()">
@@ -33,6 +33,14 @@
 
   <!-- Room Content -->
   <div *ngIf="room">
+
+    <!-- Face not registered banner -->
+    <div *ngIf="!checkingFace && !hasFaceRegistered" class="es-alert es-alert-warn">
+      <span>🪪 You haven't registered your face yet. <strong>Register now</strong> so the AI can find your
+        photos.</span>
+      <button class="es-btn es-btn-primary" style="padding:.3rem .9rem;font-size:.8rem;"
+        (click)="goToConsent()">Register</button>
+    </div>
 
     <!-- Room Header Card -->
     <div class="es-room-header">
@@ -121,15 +129,22 @@
       </div>
     </section>
 
-    <!-- ── No Match Result ── -->
+    <!-- ── No Match Result / Fallback for unregistered users ── -->
     <div *ngIf="!isMatching && matchedPhotos.length === 0 && maybePhotos.length === 0 && photos.length > 0"
       class="es-empty-matches">
       <span class="es-empty-icon">🙈</span>
       <p class="es-empty-title">No matches found yet</p>
-      <p class="es-empty-sub">Click <strong>Find My Photos</strong> above, or make sure your face is registered.</p>
-      <button class="es-btn es-btn-outline" (click)="router.navigate(['/register-face'])">
-        Register My Face
-      </button>
+      <p class="es-empty-sub">
+        Haven't registered your face yet? Register once and the AI will find every photo you're in.
+      </p>
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <button class="es-btn es-btn-primary" (click)="goToConsent()">
+          🪪 Register My Face
+        </button>
+        <button class="es-btn es-btn-outline" (click)="findMyPhotos()" [disabled]="isMatching || isProcessing">
+          🔍 Try Again
+        </button>
+      </div>
     </div>
 
     <!-- ── All Room Photos ── -->

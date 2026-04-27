@@ -4,6 +4,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PhotoService } from '../../services/photo';
 import { API_BASE } from '../../api.config';
+import { io, Socket } from 'socket.io-client';
 
 interface Photo {
   _id: string;
@@ -41,9 +42,12 @@ export class RoomComponent implements OnInit, OnDestroy {
   maybePhotos: Photo[] = [];
   isMatching = false;
   isProcessing = false;
-  processingPercentage = 0;
+  /** true once we've confirmed the user has a face descriptor saved */
+  hasFaceRegistered = false;
+  /** true while we're checking face registration status */
+  checkingFace = true;
 
-  private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private socket: Socket | null = null;
 
   constructor(
     private http: HttpClient,
@@ -54,12 +58,6 @@ export class RoomComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const roomCode = this.route.snapshot.paramMap.get('roomCode');
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      this.router.navigate(['/login']);
-      return;
-    }
 
     this.http.get<Room>(`${API_BASE}/rooms/${roomCode}`, {
       headers: this.getHeaders()
@@ -68,35 +66,60 @@ export class RoomComponent implements OnInit, OnDestroy {
         this.room = res;
         this.roomId = res._id;
         this.loadPhotos(res._id);
+        this.connectSocket(res._id);
       },
       error: () => { this.errorMsg = 'Room not found!'; }
+    });
+
+    // Check if the user already has a face registered
+    this.http.get<{ hasFace: boolean }>(`${API_BASE}/auth/me`, {
+      headers: this.getHeaders()
+    }).subscribe({
+      next: (res) => {
+        this.hasFaceRegistered = res.hasFace;
+        this.checkingFace = false;
+      },
+      error: () => { this.checkingFace = false; }
     });
   }
 
   ngOnDestroy(): void {
-    this.stopPolling();
+    this.socket?.disconnect();
   }
 
-  getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token');
-    return new HttpHeaders({ Authorization: `Bearer ${token}` });
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({ Authorization: `Bearer ${localStorage.getItem('token')}` });
   }
 
+  // ── Socket.io ──────────────────────────────────────────────────────────────
+  private connectSocket(roomId: string): void {
+    this.socket = io('http://localhost:5000', { transports: ['websocket'] });
+
+    this.socket.on('connect', () => {
+      this.socket!.emit('joinRoom', roomId);
+    });
+
+    this.socket.on('photoProcessed', (data: { photoId: string; status: string }) => {
+      const idx = this.photos.findIndex(p => p._id === data.photoId);
+      if (idx !== -1) {
+        this.photos = [
+          ...this.photos.slice(0, idx),
+          { ...this.photos[idx], status: data.status },
+          ...this.photos.slice(idx + 1)
+        ];
+      }
+      this.isProcessing = this.photos.some(p => p.status === 'processing');
+    });
+  }
+
+  // ── Data ───────────────────────────────────────────────────────────────────
   loadPhotos(roomId: string): void {
     this.http.get<Photo[]>(`${API_BASE}/photos/${roomId}`, {
       headers: this.getHeaders()
     }).subscribe({
       next: (res: Photo[]) => {
         this.photos = res;
-        const processing = res.some(p => p.status === 'processing');
-        if (processing) {
-          this.isProcessing = true;
-          this.startPolling();
-        } else {
-          this.isProcessing = false;
-          this.processingPercentage = 100;
-          this.stopPolling();
-        }
+        this.isProcessing = res.some(p => p.status === 'processing');
       },
       error: (err: { error?: { error?: string } }) => {
         this.errorMsg = err.error?.error ?? 'Failed to load photos';
@@ -104,27 +127,17 @@ export class RoomComponent implements OnInit, OnDestroy {
     });
   }
 
-  private startPolling(): void {
-    if (this.pollInterval) return;
-    this.pollInterval = setInterval(() => this.loadPhotos(this.roomId), 4000);
-  }
-
-  private stopPolling(): void {
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-      this.pollInterval = null;
-    }
-  }
-
-  get processingCount(): number {
-    return this.photos.filter(p => p.status === 'processing').length;
-  }
-
+  // ── Computed ───────────────────────────────────────────────────────────────
   get processedCount(): number {
     return this.photos.filter(p => p.status !== 'processing').length;
   }
 
+  // ── Face matching ──────────────────────────────────────────────────────────
   findMyPhotos(): void {
+    if (!this.hasFaceRegistered) {
+      this.goToConsent();
+      return;
+    }
     this.isMatching = true;
     this.matchedPhotos = [];
     this.maybePhotos = [];
@@ -137,13 +150,14 @@ export class RoomComponent implements OnInit, OnDestroy {
         this.maybePhotos = data.maybe;
         this.isMatching = false;
       },
-      error: () => {
+      error: (err: { error?: { error?: string } }) => {
         this.isMatching = false;
-        this.errorMsg = 'Error matching photos. Make sure you have registered your face first.';
+        this.errorMsg = err.error?.error ?? 'Error matching photos.';
       }
     });
   }
 
+  // ── Downloads ──────────────────────────────────────────────────────────────
   downloadImage(imageUrl: string, fileName: string): void {
     this.http.get(imageUrl, { responseType: 'blob' }).subscribe((blob: Blob) => {
       const url = window.URL.createObjectURL(blob);
@@ -156,8 +170,7 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   downloadAsPDF(): void {
-    const urls = this.matchedPhotos.map(p => p.cloudinaryUrl);
-    this.photoService.downloadPdf(urls);
+    this.photoService.downloadPdf(this.matchedPhotos.map(p => p.cloudinaryUrl));
   }
 
   downloadAll(): void {
@@ -168,7 +181,6 @@ export class RoomComponent implements OnInit, OnDestroy {
     });
   }
 
-  goToUpload(): void {
-    this.router.navigate(['/upload', this.roomId]);
-  }
+  goToUpload(): void { this.router.navigate(['/upload', this.roomId]); }
+  goToConsent(): void { this.router.navigate(['/face-consent']); }
 }

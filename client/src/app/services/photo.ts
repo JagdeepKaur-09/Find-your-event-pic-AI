@@ -1,14 +1,11 @@
 import { Injectable } from '@angular/core';
+import { API_BASE } from '../api.config';
 
 @Injectable({ providedIn: 'root' })
 export class PhotoService {
-  private apiUrl = 'http://localhost:5000/api'; // Update if your port is different
-
-  downloadPdf(imageUrls: string[]) {
-    const urlsString = imageUrls.join(',');
-    const downloadUrl = `${this.apiUrl}/photos/download-pdf?images=${urlsString}`;
-    
-    // We use window.open because the backend handles the download headers
+  downloadPdf(imageUrls: string[]): void {
+    if (!imageUrls.length) return;
+    const downloadUrl = `${API_BASE}/photos/download-pdf?images=${imageUrls.join(',')}`;
     window.open(downloadUrl, '_blank');
   }
 }
