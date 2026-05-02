@@ -5,7 +5,11 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const rateLimit = require("express-rate-limit");
+const dns = require("dns");
 require("dotenv").config();
+
+// Force Google DNS — fixes ECONNREFUSED on networks that block MongoDB SRV lookups
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
 const server = http.createServer(app);

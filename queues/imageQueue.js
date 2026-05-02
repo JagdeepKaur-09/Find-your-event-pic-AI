@@ -1,21 +1,25 @@
 const Queue = require("bull");
 const Photo = require("../models/Photo");
-const canvas = require("canvas");
+const { createCanvas, loadImage } = require("@napi-rs/canvas");
 const faceapi = require("face-api.js");
-const { Canvas, Image, ImageData } = canvas;
 
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+// Proper monkey-patch for @napi-rs/canvas with face-api.js
+const OffscreenCanvas = createCanvas(1, 1).constructor;
+faceapi.env.monkeyPatch({
+  Canvas: OffscreenCanvas,
+  createCanvasElement: () => createCanvas(300, 300),
+  createImageElement: () => ({}),
+  ImageData: Uint8ClampedArray
+});
 
 const imageQueue = new Queue(
   "image-processing",
   process.env.REDIS_URL || "redis://127.0.0.1:6379"
 );
 
-// Holds the Socket.io server instance — set by server.js after startup
 let _io = null;
 imageQueue.setIo = (io) => { _io = io; };
 
-// Load models once
 let modelsLoaded = false;
 async function ensureModels() {
   if (modelsLoaded) return;
@@ -31,10 +35,15 @@ imageQueue.process(async (job) => {
 
   await ensureModels();
 
-  const img = await canvas.loadImage(imageUrl);
+  const img = await loadImage(imageUrl);
+
+  // Draw onto a canvas so face-api can process it
+  const cvs = createCanvas(img.width, img.height);
+  const ctx = cvs.getContext("2d");
+  ctx.drawImage(img, 0, 0);
 
   const detections = await faceapi
-    .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
+    .detectAllFaces(cvs, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .withFaceDescriptors();
 
@@ -48,7 +57,6 @@ imageQueue.process(async (job) => {
 
   if (!photo) throw new Error(`Photo not found: ${photoId}`);
 
-  // Emit real-time update to all clients watching this room
   if (_io) {
     _io.to(photo.roomId.toString()).emit("photoProcessed", {
       photoId: photo._id.toString(),

@@ -17,6 +17,7 @@ const MODEL_FILES = [
     "face_landmark_68_model-shard1",
     "face_recognition_model-weights_manifest.json",
     "face_recognition_model-shard1",
+    "face_recognition_model-shard2",
 ];
 
 // Backend models folder (used by the queue worker)

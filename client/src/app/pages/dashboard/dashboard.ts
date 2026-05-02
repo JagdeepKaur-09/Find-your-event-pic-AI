@@ -24,6 +24,11 @@ export class DashboardComponent implements OnInit {
   errorMsg = '';
   newRoomName = '';
   joinCode = '';
+  foundRoom: Room | null = null;
+  searchDone = false;
+  currentUserName = '';
+  currentUserEmail = '';
+  hasFaceRegistered = false;
 
   constructor(private http: HttpClient, public router: Router) { }
 
@@ -33,6 +38,20 @@ export class DashboardComponent implements OnInit {
       return;
     }
     this.getRooms();
+    this.loadCurrentUser();
+  }
+
+  loadCurrentUser(): void {
+    this.http.get<{ name: string; email: string; hasFace: boolean }>(
+      `${API_BASE}/auth/me`, { headers: this.getHeaders() }
+    ).subscribe({
+      next: (user) => {
+        this.currentUserName = user.name;
+        this.currentUserEmail = user.email;
+        this.hasFaceRegistered = user.hasFace;
+      },
+      error: () => { }
+    });
   }
 
   private getHeaders(): HttpHeaders {
@@ -77,8 +96,34 @@ export class DashboardComponent implements OnInit {
 
   enterRoom(): void {
     const code = this.joinCode.trim();
-    if (!code) { this.errorMsg = 'Please enter a room code.'; return; }
-    this.router.navigate(['/room', code]);
+    if (!code) {
+      this.errorMsg = 'Please enter a room code.';
+      this.foundRoom = null;
+      this.searchDone = false;
+      return;
+    }
+    this.errorMsg = '';
+    this.searchDone = true;
+
+    // Look up the room by code from the backend
+    this.http.get<Room>(`${API_BASE}/rooms/${code}`, { headers: this.getHeaders() })
+      .subscribe({
+        next: (room) => {
+          this.foundRoom = room;
+          this.errorMsg = '';
+        },
+        error: () => {
+          this.foundRoom = null;
+          this.errorMsg = `No room found with code "${code}". Please check and try again.`;
+        }
+      });
+  }
+
+  clearSearch(): void {
+    this.joinCode = '';
+    this.foundRoom = null;
+    this.searchDone = false;
+    this.errorMsg = '';
   }
 
   goToUpload(roomId: string): void {
