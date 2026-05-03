@@ -1,18 +1,25 @@
 const Queue = require("bull");
 const Photo = require("../models/Photo");
-const canvas = require("canvas");
+const { createCanvas, loadImage } = require("@napi-rs/canvas");
 const faceapi = require("face-api.js");
-const { Canvas, Image, ImageData } = canvas;
 
-// Patch face-api to use node-canvas
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+// Proper monkey-patch for @napi-rs/canvas with face-api.js
+const OffscreenCanvas = createCanvas(1, 1).constructor;
+faceapi.env.monkeyPatch({
+  Canvas: OffscreenCanvas,
+  createCanvasElement: () => createCanvas(300, 300),
+  createImageElement: () => ({}),
+  ImageData: Uint8ClampedArray
+});
 
 const imageQueue = new Queue(
   "image-processing",
   process.env.REDIS_URL || "redis://127.0.0.1:6379"
 );
 
-// Load models once when the worker starts
+let _io = null;
+imageQueue.setIo = (io) => { _io = io; };
+
 let modelsLoaded = false;
 async function ensureModels() {
   if (modelsLoaded) return;
@@ -23,24 +30,25 @@ async function ensureModels() {
   console.log("✅ Face-api models loaded in queue worker");
 }
 
-// Background worker — processes one job at a time
 imageQueue.process(async (job) => {
   const { photoId, imageUrl } = job.data;
 
   await ensureModels();
 
-  // Load image from Cloudinary URL
-  const img = await canvas.loadImage(imageUrl);
+  const img = await loadImage(imageUrl);
 
-  // Run AI face detection
+  // Draw onto a canvas so face-api can process it
+  const cvs = createCanvas(img.width, img.height);
+  const ctx = cvs.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+
   const detections = await faceapi
-    .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
+    .detectAllFaces(cvs, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .withFaceDescriptors();
 
   const faceDescriptors = detections.map(d => Array.from(d.descriptor));
 
-  // Update the photo record with face data and mark as processed
   const photo = await Photo.findByIdAndUpdate(
     photoId,
     { faceDescriptors, status: "processed", processedAt: new Date() },
@@ -49,11 +57,19 @@ imageQueue.process(async (job) => {
 
   if (!photo) throw new Error(`Photo not found: ${photoId}`);
 
+  if (_io) {
+    _io.to(photo.roomId.toString()).emit("photoProcessed", {
+      photoId: photo._id.toString(),
+      status: "processed",
+      cloudinaryUrl: photo.cloudinaryUrl,
+      roomId: photo.roomId.toString()
+    });
+  }
+
   console.log(`✅ Processed photo ${photoId} — ${faceDescriptors.length} face(s) found`);
   return { status: "completed", facesFound: faceDescriptors.length };
 });
 
-// Log failures
 imageQueue.on("failed", (job, err) => {
   console.error(`❌ Job ${job.id} failed:`, err.message);
 });

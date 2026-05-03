@@ -561,3 +561,18 @@
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
 }
+
+.es-alert-warn {
+    background: rgba(245, 158, 11, .1);
+    border: 1px solid rgba(245, 158, 11, .35);
+    color: #fcd34d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: .85rem 1.2rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: .9rem;
+}
