@@ -48,13 +48,37 @@ router.post("/login", async (req, res) => {
 // POST /api/auth/register-face
 router.post("/register-face", auth, async (req, res) => {
   try {
-    // Client sends { faceDescriptor: [...128 numbers] }
     const { faceDescriptor } = req.body;
     if (!faceDescriptor || faceDescriptor.length !== 128)
       return res.status(400).json({ error: "Invalid face data. Expected 128 values." });
 
     await User.findByIdAndUpdate(req.user.userId, { faceDescriptor });
     res.json({ message: "Face registered successfully!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/auth/me — returns basic profile + whether face is registered
+router.get("/me", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select("name email faceDescriptor");
+    if (!user) return res.status(404).json({ error: "User not found." });
+    res.json({
+      name: user.name,
+      email: user.email,
+      hasFace: Array.isArray(user.faceDescriptor) && user.faceDescriptor.length === 128
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/auth/my-face — user deletes their own face data
+router.delete("/my-face", auth, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.userId, { faceDescriptor: [] });
+    res.json({ message: "Face data deleted." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
