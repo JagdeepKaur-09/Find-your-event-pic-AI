@@ -1,99 +1,72 @@
 const express = require("express");
-const path = require("path");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
-const rateLimit = require("express-rate-limit");
-const dns = require("dns");
+
 require("dotenv").config();
 
-// Force Google DNS — fixes ECONNREFUSED on networks that block MongoDB SRV lookups
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+const { createRateLimiter } = require("./middleware/rateLimit");
+const imageQueue = require("./queues/imageQueue");
 
 const app = express();
 const server = http.createServer(app);
+const clientUrl = process.env.CLIENT_URL || "http://localhost:4200";
 
-// Socket.io
 const io = new Server(server, {
-  cors: { origin: "http://localhost:4200" }
+  cors: {
+    origin: clientUrl,
+    methods: ["GET", "POST", "DELETE"]
+  }
 });
 
-// Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:4200" }));
-app.use(express.json());
+app.set("trust proxy", 1);
+app.use(cors({ origin: clientUrl }));
+app.use(express.json({ limit: "2mb" }));
 
-// Rate limiting — 100 requests per 15 min per IP
-app.use("/api/", rateLimit({
+app.use("/api/", createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 150,
   message: { error: "Too many requests. Please try again later." }
 }));
 
-// Stricter limit on auth endpoints
-app.use("/api/auth/", rateLimit({
+app.use("/api/auth/", createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 25,
   message: { error: "Too many auth attempts. Please try again later." }
 }));
 
-// Make io accessible in routes via req.app.get("socketio")
-app.set("socketio", io);
-
-// Static Bootstrap assets
-app.use("/css", express.static(path.join(__dirname, "node_modules/bootstrap/dist/css")));
-app.use("/js", express.static(path.join(__dirname, "node_modules/bootstrap/dist/js")));
-
-// MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(async () => {
-    console.log("✅ MongoDB connected");
-    // On startup, recover any photos stuck in 'processing' from a previous crash
-    const Photo = require("./models/Photo");
-    const stuckCount = await Photo.countDocuments({ status: "processing" });
-    if (stuckCount > 0) {
-      console.log(`⚠️  Found ${stuckCount} stuck photo(s) — re-queuing...`);
-      const stuck = await Photo.find({ status: "processing" });
-      const imageQueue = require("./queues/imageQueue");
-      for (const p of stuck) {
-        await imageQueue.add({ photoId: p._id.toString(), imageUrl: p.cloudinaryUrl });
-      }
-    }
-  })
-  .catch(err => console.error("❌ MongoDB error:", err));
-
-// Start background queue worker and pass Socket.io instance to it
-const imageQueue = require("./queues/imageQueue");
+app.set("io", io);
 imageQueue.setIo(io);
 
-// Start scheduled cleanup job (clears face data older than 7 days)
 require("./scripts/cleanup");
 
-// Routes
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "catchyoface-backend" });
+});
+
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/rooms", require("./routes/rooms"));
 app.use("/api/photos", require("./routes/photos"));
 
-// Serve frontend entry point
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "views/index.html"));
-});
-
-// Socket.io events
 io.on("connection", (socket) => {
-  console.log(" User connected:", socket.id);
-
   socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room: ${roomId}`);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    if (roomId) {
+      socket.join(roomId);
+    }
   });
 });
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(async () => {
+    console.log("MongoDB connected");
+    await imageQueue.requeueInFlightPhotos();
+  })
+  .catch((error) => {
+    console.error("MongoDB error:", error);
+  });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(` Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
