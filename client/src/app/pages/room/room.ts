@@ -82,25 +82,7 @@ showAll = false;
         this.loadPhotos(res._id);
         this.connectSocket(res._id);
       },
-      error: () => this.errorMsg = 'Room not found!'
-    });
-    this.setupSocket();
-  }
-
-  setupSocket() {
-    this.socket = io('http://localhost:5000');
-    
-    // Join the room to receive specific updates
-    this.socket.emit('joinRoom', this.roomId);
-
-    this.socket.on('photoProcessed', (data: any) => {
-      // Find the photo in your local array and update its status
-      const photo = this.photos.find(p => p._id === data.photoId);
-      if (photo) {
-        photo.status = 'processed';
-        // If the user just ran "Find My Photos", trigger a re-check!
-        if (this.matchedPhotos.length > 0) this.findMyPhotos();
-      }
+      error: () => { this.errorMsg = 'Room not found!'; }
     });
 
     // Check if the user already has a face registered
