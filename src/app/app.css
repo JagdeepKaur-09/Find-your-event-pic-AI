@@ -1,0 +1,16 @@
+.app-shell {
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.82);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-brand {
+  color: #102542;
+  letter-spacing: 0.02em;
+}
+
+.app-main {
+  min-height: calc(100vh - 72px);
+}

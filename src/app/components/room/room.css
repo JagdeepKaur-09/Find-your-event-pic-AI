@@ -1,0 +1,22 @@
+.room-shell {
+  border-radius: 1.35rem;
+}
+
+.room-progress-track {
+  height: 0.75rem;
+}
+
+.photo-card {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.photo-card-muted {
+  opacity: 0.92;
+}
+
+.photo-preview {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  width: 100%;
+}

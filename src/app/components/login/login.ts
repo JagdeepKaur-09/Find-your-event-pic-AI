@@ -1,41 +1,52 @@
 import { Component } from '@angular/core';
-import { RouterLink, Router } from '@angular/router'; // <-- Make sure Router is imported
-import { FormsModule } from '@angular/forms'; 
-import { AuthService } from '../../services/auth'; 
+import { CommonModule } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink, FormsModule],
-  templateUrl: './login.html', // (Make sure this matches your actual HTML filename!)
-  styleUrl: './login.css' // (Make sure this matches your actual CSS filename!)
+  imports: [CommonModule, RouterLink, FormsModule],
+  templateUrl: './login.html',
+  styleUrl: './login.css'
 })
 export class Login {
   userEmail = '';
   userPassword = '';
+  loading = false;
+  errorMessage = '';
 
-  // Inject the Chef AND the Router
-  constructor(private authService: AuthService, private router: Router) { }
+  constructor(private auth: AuthService, private router: Router) {}
 
-  onLogin() {
-    const credentials = {
-      email: this.userEmail,
-      password: this.userPassword
-    };
+  async onLogin(): Promise<void> {
+    this.errorMessage = '';
 
-    this.authService.loginUser(credentials).subscribe({
-      next: (response: any) => {
-        console.log("Backend says YES:", response);
-        
-        // 1. Grab the VIP Wristband and save it to the browser
-        localStorage.setItem('token', response.token); 
-        
-        // 2. Instantly route them to the dashboard page
-        this.router.navigate(['/dashboard']); 
-      },
-      error: (err: any) => {
-        console.error("Backend says NO:", err);
-        alert("Login Failed. Check your email and password.");
-      }
-    });
+    if (!this.userEmail || !this.userPassword) {
+      this.errorMessage = 'Enter both your email and password.';
+      return;
+    }
+
+    this.loading = true;
+    try {
+      const response = await firstValueFrom(
+        this.auth.login({
+          email: this.userEmail,
+          password: this.userPassword
+        })
+      );
+
+      this.auth.storeSession(response.token, response.user);
+      this.router.navigate(['/dashboard']);
+    } catch (error) {
+      this.errorMessage = this.readError(error, 'Login failed. Please try again.');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private readError(error: unknown, fallback: string): string {
+    const response = error as { error?: { error?: string } };
+    return response.error?.error ?? fallback;
   }
 }

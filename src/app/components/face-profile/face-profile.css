@@ -1,0 +1,11 @@
+.face-card {
+  border-radius: 1.5rem;
+}
+
+.status-panel {
+  background: linear-gradient(180deg, #f4f8ff, #eef3f6);
+  border: 1px solid #d7e2eb;
+  border-radius: 1rem;
+  height: 100%;
+  padding: 1.25rem;
+}

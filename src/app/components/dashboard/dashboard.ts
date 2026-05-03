@@ -1,65 +1,96 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { FaceRecognition } from '../../services/face-recognition';
+import { firstValueFrom } from 'rxjs';
+import { AuthUser, RoomSummary } from '../../models';
+import { AuthService } from '../../services/auth';
+import { RoomService } from '../../services/room';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [FormsModule],
-  templateUrl: './dashboard.html', // (Make sure this matches!)
+  imports: [CommonModule, FormsModule, RouterLink],
+  templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })
 export class Dashboard {
-  // Organizer Variables
+  profile: AuthUser | null = null;
+  rooms: RoomSummary[] = [];
   newEventName = '';
-  createdRoomCode = '';
-
-  // Attendee Variables
   joinRoomCode = '';
+  loading = true;
+  creating = false;
+  errorMessage = '';
+  successMessage = '';
 
-  constructor(private router: Router, private http: HttpClient , private aiService: FaceRecognition) {}
+  constructor(
+    private auth: AuthService,
+    private roomService: RoomService,
+    private router: Router
+  ) {}
 
-  ngOnInit() {
-  this.aiService.loadModels();
+  async ngOnInit(): Promise<void> {
+    await this.loadDashboard();
   }
 
-  // --- ORGANIZER: Create a new room ---
-  onCreateRoom() {
-    if (!this.newEventName) {
-      alert("Please enter an event name!");
+  async createRoom(): Promise<void> {
+    if (!this.newEventName.trim()) {
+      this.errorMessage = 'Enter an event name before creating a room.';
       return;
     }
 
-    const roomData = { eventName: this.newEventName, organizerId: "123456789012345678901234" };
+    this.creating = true;
+    this.errorMessage = '';
 
-    this.http.post('http://localhost:5000/api/rooms/create', roomData).subscribe({
-      next: (res: any) => {
-        this.createdRoomCode = res.roomCode;
-        this.router.navigate(['/room', res.roomCode], { queryParams: { role: 'organizer' }});
-      },
-      error: (err: any) => {
-        console.error("Error creating room:", err);
-        alert("Failed to create room.");
-      }
-    });
+    try {
+      const response = await firstValueFrom(this.roomService.createRoom(this.newEventName.trim()));
+      this.rooms = [response.room, ...this.rooms];
+      this.newEventName = '';
+      this.successMessage = `Room ${response.roomCode} created successfully.`;
+      this.router.navigate(['/room', response.roomCode]);
+    } catch (error) {
+      this.errorMessage = this.readError(error, 'Failed to create the room.');
+    } finally {
+      this.creating = false;
+    }
   }
 
-  // --- ATTENDEE: Join a room ---
-  onJoinRoom() {
-    if (!this.joinRoomCode) {
+  joinRoom(): void {
+    const roomCode = this.joinRoomCode.split('/').pop()?.trim();
+    if (!roomCode) {
+      this.errorMessage = 'Enter a room code first.';
       return;
     }
-    /// Defensive Programming: If they paste the whole URL, just grab the last part!
-    // e.g., "localhost:4200/room/abc" becomes "abc"
-    const cleanRoomCode = this.joinRoomCode.split('/').pop()?.trim();
 
-    // Use the Angular Router to actually send them to the room!
-    this.router.navigate(['/room', cleanRoomCode], { queryParams: { role: 'attendee' }});
+    this.router.navigate(['/room', roomCode]);
   }
 
-  onLogout() {
-    localStorage.removeItem('token');
-    this.router.navigate(['/login']);
+  openRoom(roomCode: string): void {
+    this.router.navigate(['/room', roomCode]);
+  }
+
+  private async loadDashboard(): Promise<void> {
+    this.loading = true;
+    this.errorMessage = '';
+
+    try {
+      const [profile, rooms] = await Promise.all([
+        firstValueFrom(this.auth.getProfile()),
+        firstValueFrom(this.roomService.getMyRooms())
+      ]);
+
+      this.profile = profile;
+      this.auth.updateStoredUser(profile);
+      this.rooms = rooms;
+    } catch (error) {
+      this.errorMessage = this.readError(error, 'Failed to load your dashboard.');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private readError(error: unknown, fallback: string): string {
+    const response = error as { error?: { error?: string } };
+    return response.error?.error ?? fallback;
   }
 }

@@ -1,24 +1,22 @@
 import { Component } from '@angular/core';
-import { RouterOutlet, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { AuthService } from './services/auth';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink],
-  templateUrl: './app.html', 
+  templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
-  constructor(private router: Router) {}
+  constructor(private router: Router, private auth: AuthService) {}
 
-  // The Smart Check: Returns true if they have a VIP wristband
   get isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
+    return this.auth.isLoggedIn();
   }
 
-  // The Escape Hatch
-  onLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('myFaceMath'); // Clear their face data for privacy!
+  onLogout(): void {
+    this.auth.logout();
     this.router.navigate(['/login']);
   }
 }

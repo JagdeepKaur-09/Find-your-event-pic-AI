@@ -1,19 +1,19 @@
-<nav class="navbar navbar-dark bg-dark mb-4">
-  <div class="container-fluid px-4">
-    
-    <a class="navbar-brand mb-0 h1 fw-bold text-white text-decoration-none" routerLink="/">CatchYoFace</a>
-    
-    <div>
+<nav class="app-shell navbar navbar-expand-lg border-bottom border-light-subtle">
+  <div class="container py-2">
+    <a class="navbar-brand fw-bold text-decoration-none" routerLink="/">CatchYoFace</a>
+
+    <div class="d-flex gap-2 ms-auto">
       @if (isLoggedIn) {
-        <button class="btn btn-outline-light btn-sm me-2" routerLink="/dashboard">Dashboard</button>
-        <button class="btn btn-danger btn-sm" (click)="onLogout()">Logout</button>
+        <a class="btn btn-outline-secondary btn-sm" routerLink="/dashboard">Dashboard</a>
+        <button class="btn btn-dark btn-sm" type="button" (click)="onLogout()">Logout</button>
       } @else {
-        <button class="btn btn-outline-light btn-sm me-2" routerLink="/login">Login</button>
-        <button class="btn btn-primary btn-sm" routerLink="/signup">Sign Up</button>
+        <a class="btn btn-outline-secondary btn-sm" routerLink="/login">Login</a>
+        <a class="btn btn-primary btn-sm" routerLink="/signup">Get Started</a>
       }
     </div>
-
   </div>
 </nav>
 
-<router-outlet></router-outlet>
+<main class="app-main">
+  <router-outlet></router-outlet>
+</main>

@@ -1,0 +1,56 @@
+.hero-wrap {
+  background:
+    radial-gradient(circle at top left, rgba(36, 123, 160, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(249, 212, 35, 0.16), transparent 30%),
+    linear-gradient(180deg, #f9fbff 0%, #eef4f7 100%);
+}
+
+.hero-kicker {
+  color: #247ba0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.metric-card,
+.showcase-card {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(16, 37, 66, 0.08);
+  border-radius: 1.25rem;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 100%;
+  padding: 1rem;
+}
+
+.metric-card strong {
+  color: #102542;
+}
+
+.metric-card span {
+  color: #5b6572;
+  font-size: 0.92rem;
+}
+
+.showcase-card {
+  padding: 1.5rem;
+}
+
+.showcase-header {
+  color: #102542;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.showcase-list {
+  color: #364152;
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}

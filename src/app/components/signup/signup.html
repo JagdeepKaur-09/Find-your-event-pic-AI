@@ -1,36 +1,64 @@
-<div class="container mt-5">
+<section class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-      
-      <div class="card shadow p-4">
-        <h3 class="text-center mb-4">Create an Account</h3>
-        
-        <form (ngSubmit)="onSignup()">
-          <div class="mb-3">
-            <label for="name" class="form-label fw-bold">Full Name</label>
-            <input type="text" class="form-control" id="name" name="name" [(ngModel)]="userName" placeholder="John Doe">
-          </div>
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm signup-card">
+        <div class="card-body p-4 p-md-5">
+          <p class="text-uppercase small text-secondary mb-2">Account setup</p>
+          <h1 class="h3 mb-3">Create your CatchYoFace account</h1>
+          <p class="text-secondary mb-4">
+            Add your details and one clear face image so we can match you to event galleries.
+          </p>
 
-          <div class="mb-3">
-            <label for="email" class="form-label fw-bold">Email address</label>
-            <input type="email" class="form-control" id="email" name="email" [(ngModel)]="userEmail" placeholder="name@example.com">
-          </div>
-          
-          <div class="mb-4">
-            <label for="password" class="form-label fw-bold">Password</label>
-            <input type="password" class="form-control" id="password" name = "password" [(ngModel)] = "userPassword" placeholder="Create a password">
-          </div>
+          <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+          <div *ngIf="infoMessage" class="alert alert-success">{{ infoMessage }}</div>
 
-          <input type="file" (change)="onUploadReferenceFace($event)">
+          <form (ngSubmit)="onSignup()" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="name">Full name</label>
+              <input class="form-control" id="name" name="name" [(ngModel)]="userName" type="text">
+            </div>
 
-          <button type="submit" class="btn btn-primary w-100 fw-bold">Sign Up</button>
-        </form>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="email">Email</label>
+              <input class="form-control" id="email" name="email" [(ngModel)]="userEmail" type="email">
+            </div>
 
-        <div class="text-center mt-3">
-          <small>Already have an account? <a routerLink="/login" class="text-decoration-none">Login here</a></small>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="password">Password</label>
+              <input class="form-control" id="password" name="password" [(ngModel)]="userPassword" type="password">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Reference face image</label>
+              <input class="form-control" type="file" accept="image/*" (change)="onUploadReferenceFace($event)">
+              <div class="form-text">{{ referenceImageName || 'Upload one clear image with your face visible.' }}</div>
+            </div>
+
+            <div class="col-12">
+              <div class="consent-panel">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="consent" name="consent" [(ngModel)]="consentGiven">
+                  <label class="form-check-label" for="consent">
+                    I consent to CatchYoFace storing my face descriptor for up to 7 days to find my event photos.
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 d-flex gap-3 flex-wrap align-items-center">
+              <button class="btn btn-dark px-4" type="submit" [disabled]="loading || scanning">
+                {{ loading ? 'Creating account...' : 'Create account' }}
+              </button>
+              <span class="text-secondary small" *ngIf="scanning">Running face detection on your image...</span>
+            </div>
+          </form>
+
+          <p class="mt-4 mb-0 text-secondary">
+            Already have an account?
+            <a routerLink="/login" class="text-decoration-none">Log in</a>
+          </p>
         </div>
       </div>
-
     </div>
   </div>
-</div>
+</section>

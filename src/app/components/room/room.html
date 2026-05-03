@@ -1,39 +1,177 @@
-<div class="container pb-5">
+<section class="container py-5">
+  <div *ngIf="loading" class="alert alert-light border">Loading room...</div>
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
 
-  @if (userRole === 'organizer') {
-    <div class="card shadow-sm border-primary mb-5">
-      <div class="card-body p-4 text-center">
-        <h3 class="fw-bold mb-3">Event Photographer Hub</h3>
-        <p class="text-muted">Upload the raw event photos here. Our AI will index all faces automatically.</p>
-        
-        <input class="form-control form-control-lg mb-2" type="file" accept="image/*" multiple (change)="onBulkUploadGallery($event)">
-      </div>
-    </div>
-  }
+  <div *ngIf="room" class="d-grid gap-4">
+    <div class="card border-0 shadow-sm room-shell">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div>
+            <p class="text-uppercase small text-secondary mb-2">Room {{ room.roomCode }}</p>
+            <h1 class="h3 mb-2">{{ room.eventName }}</h1>
+            <div class="d-flex gap-2 flex-wrap">
+              <span class="badge rounded-pill text-bg-dark text-uppercase">{{ room.status }}</span>
+              <span class="badge rounded-pill text-bg-light">{{ totalCount }} photo{{ totalCount === 1 ? '' : 's' }}</span>
+              <span class="badge rounded-pill text-bg-light">{{ processedCount }} processed</span>
+              <span class="badge rounded-pill text-bg-light" *ngIf="failedCount > 0">{{ failedCount }} failed</span>
+            </div>
+          </div>
 
-  @if (userRole === 'attendee') {
-    <div class="alert alert-success mb-4">
-      <h5 class="mb-1">AI Active</h5>
-      @if (hasSavedFace) {
-        <p class="mb-0">We automatically scanned this gallery using the face profile you provided during registration.</p>
-      } @else {
-        <p class="mb-0 text-danger">No face profile found! Please update your account settings.</p>
-      }
-    </div>
-  }
+          <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary btn-sm" routerLink="/dashboard">Back to dashboard</a>
+            <a class="btn btn-outline-secondary btn-sm" routerLink="/face-profile" *ngIf="!isOrganizer">Face profile</a>
+            <button class="btn btn-dark btn-sm" type="button" (click)="findMyPhotos()" [disabled]="matching || !hasFace" *ngIf="!isOrganizer">
+              {{ matching ? 'Matching...' : 'Find my photos' }}
+            </button>
+          </div>
+        </div>
 
-  <h4 class="mb-3">Event Gallery</h4>
-  <div class="row g-4">
-    @for (photo of allPhotos; track photo) {
-      <div class="col-md-4 col-sm-6">
-        <div class="card shadow-sm h-100">
-          <img [src]="photo" class="card-img-top" style="height: 250px; object-fit: cover;">
-          <div class="card-body text-center">
-            <button class="btn btn-outline-dark btn-sm w-100">⬇Download High-Res</button>
+        <div *ngIf="isProcessing" class="mt-4">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>AI processing progress</span>
+            <span>{{ processedCount }} / {{ totalCount }}</span>
+          </div>
+          <div class="progress room-progress-track">
+            <div
+              class="progress-bar bg-dark"
+              role="progressbar"
+              [style.width.%]="totalCount ? (processedCount / totalCount) * 100 : 0"
+            ></div>
           </div>
         </div>
       </div>
-    }
-  </div>
+    </div>
 
-</div>
+    <div class="card border-0 shadow-sm room-shell" *ngIf="isOrganizer">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+          <div>
+            <h2 class="h5 mb-1">Organizer upload</h2>
+            <p class="text-secondary mb-0">Upload photos directly to Cloudinary and let the backend process them in the background.</p>
+          </div>
+        </div>
+
+        <input
+          class="form-control mb-3"
+          type="file"
+          accept="image/*"
+          multiple
+          (change)="onFilesSelected($event)"
+          [disabled]="uploading"
+        >
+
+        <div *ngIf="selectedFiles.length > 0" class="rounded-3 border bg-light p-3 mb-3">
+          <p class="mb-1 fw-semibold">{{ selectedFiles.length }} file{{ selectedFiles.length === 1 ? '' : 's' }} selected</p>
+          <p class="mb-0 text-secondary small">{{ currentUploadName || selectedFiles[0].name }}</p>
+        </div>
+
+        <div *ngIf="uploading" class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>Uploading to Cloudinary</span>
+            <span>{{ uploadProgress }}%</span>
+          </div>
+          <div class="progress room-progress-track">
+            <div class="progress-bar bg-primary" [style.width.%]="uploadProgress"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="button" (click)="uploadPhotos()" [disabled]="uploading || selectedFiles.length === 0">
+          {{ uploading ? 'Uploading...' : 'Upload photos' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm room-shell" *ngIf="!isOrganizer">
+      <div class="card-body p-4">
+        <div *ngIf="!hasFace" class="alert alert-warning mb-0">
+          You need a face profile before we can match your photos.
+          <a routerLink="/face-profile" class="alert-link">Finish face setup</a>.
+        </div>
+
+        <div *ngIf="hasFace && matchedPhotos.length === 0 && maybePhotos.length === 0" class="text-secondary">
+          When your room photos are processed, your matches will appear here.
+        </div>
+
+        <div *ngIf="matchedPhotos.length > 0" class="mb-4">
+          <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+            <div>
+              <h2 class="h5 mb-1">Photos of you</h2>
+              <p class="text-secondary mb-0">Strong matches first, ranked by distance.</p>
+            </div>
+            <button class="btn btn-dark btn-sm" type="button" (click)="downloadMatchesPdf()">Download PDF</button>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4" *ngFor="let photo of matchedPhotos">
+              <div class="card border-0 shadow-sm h-100 photo-card">
+                <img [src]="photo.cloudinaryUrl" class="photo-preview" [alt]="photo.originalFilename">
+                <div class="card-body">
+                  <p class="small text-secondary mb-3">Distance: {{ photo.bestDistance | number:'1.2-3' }}</p>
+                  <button class="btn btn-outline-dark btn-sm w-100" type="button" (click)="downloadPhoto(photo)">Download</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="maybePhotos.length > 0">
+          <h2 class="h5 mb-3">Possible matches</h2>
+          <div class="row g-3">
+            <div class="col-md-4" *ngFor="let photo of maybePhotos">
+              <div class="card border-0 shadow-sm h-100 photo-card photo-card-muted">
+                <img [src]="photo.cloudinaryUrl" class="photo-preview" [alt]="photo.originalFilename">
+                <div class="card-body">
+                  <p class="small text-secondary mb-3">Distance: {{ photo.bestDistance | number:'1.2-3' }}</p>
+                  <button class="btn btn-outline-dark btn-sm w-100" type="button" (click)="downloadPhoto(photo)">Download</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm room-shell">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+          <div>
+            <h2 class="h5 mb-1">{{ isOrganizer ? 'Uploaded room photos' : 'Event gallery' }}</h2>
+            <p class="text-secondary mb-0">
+              {{ isOrganizer ? 'Track processing and manage the gallery.' : 'Browse all room photos if you need manual confirmation.' }}
+            </p>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" type="button" *ngIf="!isOrganizer" (click)="showAllPhotos = !showAllPhotos">
+            {{ showAllPhotos ? 'Hide full gallery' : 'Browse all photos' }}
+          </button>
+        </div>
+
+        <div *ngIf="photos.length === 0" class="rounded-3 border bg-light p-4 text-secondary">
+          No photos have been uploaded yet.
+        </div>
+
+        <div class="row g-3" *ngIf="photos.length > 0 && (isOrganizer || showAllPhotos)">
+          <div class="col-md-4" *ngFor="let photo of photos">
+            <div class="card border-0 shadow-sm h-100 photo-card">
+              <img [src]="photo.cloudinaryUrl" class="photo-preview" [alt]="photo.originalFilename">
+              <div class="card-body">
+                <p class="small text-secondary mb-3">
+                  {{ photo.status === 'processing' ? 'AI is scanning this image...' : (photo.status === 'failed' ? (photo.processingError || 'Processing failed') : 'Processed successfully') }}
+                </p>
+
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-dark btn-sm flex-fill" type="button" (click)="downloadPhoto(photo)" [disabled]="photo.status === 'processing'">
+                    Download
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm" type="button" *ngIf="isOrganizer" (click)="deletePhoto(photo._id)">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,35 +1,54 @@
-<!-- Hero Section -->
-  <div class="jumbotron text-center bg-light mb-0">
-    <div class="container">
-      <h1 class="display-4">Find Your Event Photos Instantly</h1>
-      <p class="lead">Upload your image and let AI find your memories.</p>
-      <button class="btn btn-primary" routerLink="/signup">Get Started</button>
+<section class="hero-wrap py-5">
+  <div class="container py-4 py-md-5">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <p class="hero-kicker mb-3">City-scale event photo matching</p>
+        <h1 class="display-5 fw-bold mb-3">Find your event photos without scrolling through hundreds of images.</h1>
+        <p class="lead text-secondary mb-4">
+          Organizers upload event galleries once. Attendees register a single reference face image and instantly see the photos that matter to them.
+        </p>
+
+        <div class="d-flex gap-3 flex-wrap">
+          <a class="btn btn-dark btn-lg px-4" routerLink="/signup">Create your account</a>
+          <a class="btn btn-outline-secondary btn-lg px-4" routerLink="/login">Log in</a>
+        </div>
+
+        <div class="row g-3 mt-4">
+          <div class="col-sm-4">
+            <div class="metric-card">
+              <strong>1 upload</strong>
+              <span>for each organizer gallery</span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="metric-card">
+              <strong>1 face profile</strong>
+              <span>for each attendee</span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="metric-card">
+              <strong>7-day retention</strong>
+              <span>for biometric data</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="showcase-card shadow-lg">
+          <div class="showcase-header d-flex justify-content-between align-items-center">
+            <span>CatchYoFace workflow</span>
+            <span class="badge rounded-pill text-bg-light">Live matching</span>
+          </div>
+          <ol class="showcase-list">
+            <li>Create a room for your event and share the room code.</li>
+            <li>Upload your gallery directly to Cloudinary from the organizer room view.</li>
+            <li>Register a face image once and let the backend match it against processed event photos.</li>
+            <li>Download your matched photos individually or as a single PDF pack.</li>
+          </ol>
+        </div>
+      </div>
     </div>
   </div>
-
-  <!-- Cards -->
-  <div class="container mt-4">
-    <div class="row text-center">
-      <div class="col-md-4">
-        <div class="card p-4 shadow" routerLink="/login">
-          <h4>Upload Photo</h4>
-          <p>Submit your image and event details.</p>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card p-4 shadow" routerLink="/login">
-          <h4>AI Matching</h4>
-          <p>Face recognition matches your photos.</p>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="card p-4 shadow" routerLink="/login">
-          <h4>Download</h4>
-          <p>Download images individually or as PDF.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
+</section>
